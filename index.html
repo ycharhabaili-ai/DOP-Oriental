@@ -355,42 +355,46 @@ function init() {
 
 // ── API ──────────────────────────────────────────────────────
 async function callAPI(method, params) {
-  if (!API_URL || API_URL === "" || API_URL.includes("VOTRE_URL")) return null;
-  try {
-    // Apps Script: always use GET with params (avoids CORS preflight)
-    const q = new URLSearchParams({...params, t: Date.now()}).toString();
-    const res = await fetch(API_URL + '?' + q, {redirect: 'follow'});
-    const text = await res.text();
-    try { return JSON.parse(text); } catch(e) { return {success:true}; }
-  } catch(e) {
-    console.error('API error:', e);
-    return null;
-  }
+  if (!API_URL || API_URL === "") return null;
+  return new Promise((resolve) => {
+    const cb = 'jsonp_' + Date.now();
+    const allP = {...params, callback: cb, t: Date.now()};
+    const q = new URLSearchParams(allP).toString();
+    const script = document.createElement('script');
+    const timer = setTimeout(() => {
+      delete window[cb];
+      if (script.parentNode) script.parentNode.removeChild(script);
+      resolve(null);
+    }, 8000);
+    window[cb] = (data) => {
+      clearTimeout(timer);
+      delete window[cb];
+      if (script.parentNode) script.parentNode.removeChild(script);
+      resolve(data);
+    };
+    script.src = API_URL + '?' + q;
+    script.onerror = () => { clearTimeout(timer); resolve(null); };
+    document.head.appendChild(script);
+  });
 }
 
 async function checkAPI() {
   const dot = document.getElementById('apiDot');
   const lbl = document.getElementById('apiLabel');
-  if (!API_URL || API_URL === "" || API_URL.includes("VOTRE_URL")) {
+  if (!API_URL || API_URL === "") {
     dot.className = 'api-status';
     lbl.textContent = 'Mode démo (hors ligne)';
     return;
   }
   dot.className = 'api-status'; lbl.textContent = 'Connexion...';
-  try {
-    const q = new URLSearchParams({action:'ping', t: Date.now()}).toString();
-    const res = await fetch(API_URL + '?' + q, {redirect:'follow'});
-    if (res.ok) {
-      dot.className = 'api-status ok';
-      lbl.textContent = 'Connecté au Sheets';
-      loadCompletude();
-    } else {
-      dot.className = 'api-status err';
-      lbl.textContent = 'Erreur connexion';
-    }
-  } catch(e) {
+  const r = await callAPI('GET', {action:'ping'});
+  if (r && (r.status === 'ok' || r.success)) {
+    dot.className = 'api-status ok';
+    lbl.textContent = 'Connecté au Sheets';
+    loadCompletude();
+  } else {
     dot.className = 'api-status err';
-    lbl.textContent = 'Mode démo';
+    lbl.textContent = 'Hors ligne — mode démo';
   }
 }
 
