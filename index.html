@@ -355,19 +355,13 @@ function init() {
 
 // ── API ──────────────────────────────────────────────────────
 async function callAPI(method, params) {
-  if (!API_URL || API_URL === "") return null;
+  if (!API_URL || API_URL === "" || API_URL.includes("VOTRE_URL")) return null;
   try {
-    let res;
-    if (method === 'GET') {
-      const q = new URLSearchParams(params).toString();
-      res = await fetch(API_URL + '?' + q);
-    } else {
-      res = await fetch(API_URL, {
-        method:'POST',
-        body: JSON.stringify(params)
-      });
-    }
-    return await res.json();
+    // Apps Script: always use GET with params (avoids CORS preflight)
+    const q = new URLSearchParams({...params, t: Date.now()}).toString();
+    const res = await fetch(API_URL + '?' + q, {redirect: 'follow'});
+    const text = await res.text();
+    try { return JSON.parse(text); } catch(e) { return {success:true}; }
   } catch(e) {
     console.error('API error:', e);
     return null;
@@ -377,19 +371,26 @@ async function callAPI(method, params) {
 async function checkAPI() {
   const dot = document.getElementById('apiDot');
   const lbl = document.getElementById('apiLabel');
-  if (!API_URL || API_URL === "https://script.google.com/macros/s/AKfycbydOIx9MS0Q49PXIdOapRrLh5lo3sz79-p1tuhe8tyuSBfdcGyZvmmbUXJ0R-Ww4jhz0Q/exec") {
+  if (!API_URL || API_URL === "" || API_URL.includes("VOTRE_URL")) {
     dot.className = 'api-status';
     lbl.textContent = 'Mode démo (hors ligne)';
     return;
   }
-  const r = await callAPI('GET', {action:'ping'});
-  if (r && r.status === 'ok') {
-    dot.className = 'api-status ok';
-    lbl.textContent = 'Connecté au Sheets';
-    loadCompletude();
-  } else {
+  dot.className = 'api-status'; lbl.textContent = 'Connexion...';
+  try {
+    const q = new URLSearchParams({action:'ping', t: Date.now()}).toString();
+    const res = await fetch(API_URL + '?' + q, {redirect:'follow'});
+    if (res.ok) {
+      dot.className = 'api-status ok';
+      lbl.textContent = 'Connecté au Sheets';
+      loadCompletude();
+    } else {
+      dot.className = 'api-status err';
+      lbl.textContent = 'Erreur connexion';
+    }
+  } catch(e) {
     dot.className = 'api-status err';
-    lbl.textContent = 'Hors ligne';
+    lbl.textContent = 'Mode démo';
   }
 }
 
