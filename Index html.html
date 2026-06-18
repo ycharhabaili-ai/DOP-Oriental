@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DOP Oriental — Système de collecte</title>
+<style>
+  :root {
+    --navy:#1F3864; --navy2:#2E4F7F; --blue:#2E75B6;
+    --green:#375623; --green2:#538135; --orange:#C55A11;
+    --brown:#7B3F00; --purple:#8E44AD; --gray:#7F8C8D;
+    --red:#DC2626; --gold:#D97706; --teal:#0891B2;
+    --bg:#F1F5F9; --card:#FFFFFF; --border:#E2E8F0;
+    --text:#1E293B; --muted:#64748B;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+  /* HEADER */
+  .hdr{background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:54px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+  .hdr-left{display:flex;align-items:center;gap:10px}
+  .hdr-logo{width:32px;height:32px;background:var(--blue);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
+  .hdr-title{font-size:14px;font-weight:700}
+  .hdr-sub{font-size:10px;opacity:.65;margin-top:1px}
+  .hdr-right{display:flex;align-items:center;gap:10px}
+  .hdr-pill{background:rgba(255,255,255,.12);padding:4px 12px;border-radius:20px;font-size:11px;opacity:.85}
+  .api-status{width:8px;height:8px;border-radius:50%;background:#94A3B8;display:inline-block;margin-right:5px;transition:background .3s}
+  .api-status.ok{background:#22C55E}
+  .api-status.err{background:#EF4444}
+
+  /* NAV */
+  .nav{background:var(--navy2);display:flex;padding:0 20px;overflow-x:auto;gap:2px}
+  .ntab{padding:10px 14px;font-size:12px;font-weight:500;color:rgba(255,255,255,.6);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;transition:all .2s}
+  .ntab:hover{color:#fff}
+  .ntab.on{color:#fff;border-bottom-color:#38BDF8}
+
+  /* MAIN */
+  .main{padding:18px 20px;max-width:1280px;margin:0 auto}
+
+  /* STATS ROW */
+  .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px}
+  .scard{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:10px}
+  .sico{width:38px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+  .sval{font-size:22px;font-weight:700;line-height:1}
+  .slbl{font-size:11px;color:var(--muted);margin-top:2px}
+
+  /* FREQ GRID */
+  .fgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
+  .fcol{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+  .fhdr{padding:10px 14px;display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700}
+  .fdot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+  .fcnt{margin-left:auto;padding:1px 8px;border-radius:10px;font-size:10px;background:rgba(255,255,255,.25)}
+  .fitems{padding:6px 10px 10px}
+  .fitem{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:7px;cursor:pointer;transition:all .15s;border:1px solid transparent;margin-bottom:3px}
+  .fitem:hover{background:var(--bg);border-color:var(--border)}
+  .fitem:last-child{margin-bottom:0}
+  .fim-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+  .fim-name{font-size:12px;flex:1;line-height:1.3}
+  .fim-ent{font-size:10px;color:var(--muted)}
+  .fim-badge{font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600;flex-shrink:0;cursor:pointer}
+
+  /* CARDS GRID */
+  .cgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin-bottom:18px}
+  .icard{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:13px 15px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+  .icard::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+  .icard:hover{border-color:var(--blue);transform:translateY(-1px);box-shadow:0 4px 14px rgba(0,0,0,.09)}
+  .icard-theme{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:3px}
+  .icard-name{font-size:13px;font-weight:600;margin-bottom:7px;line-height:1.4}
+  .icard-meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .icard-ent{font-size:10px;color:var(--muted);margin-top:5px}
+  .saved-mark{position:absolute;top:8px;right:8px;background:#22C55E;color:white;font-size:10px;padding:2px 7px;border-radius:8px;font-weight:600}
+
+  /* BADGES */
+  .b{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:600}
+  .b-red{background:#FEE2E2;color:#DC2626}
+  .b-gold{background:#FEF3C7;color:#D97706}
+  .b-green{background:#DCFCE7;color:#16A34A}
+  .b-purple{background:#EDE9FE;color:#7C3AED}
+  .b-gray{background:#F3F4F6;color:#6B7280}
+  .b-blue{background:#DBEAFE;color:#2563EB}
+  .b-ok{background:#DCFCE7;color:#16A34A}
+  .b-pend{background:#FEF3C7;color:#D97706}
+
+  /* COMPLETUDE TABLE */
+  .ctable{width:100%;border-collapse:collapse;font-size:12px}
+  .ctable th{background:var(--navy);color:#fff;padding:9px 12px;text-align:left;font-size:11px;font-weight:600}
+  .ctable td{padding:8px 12px;border-bottom:1px solid var(--border)}
+  .ctable tr:hover td{background:var(--bg)}
+  .pbar{height:6px;background:#E2E8F0;border-radius:3px;width:70px;overflow:hidden}
+  .pfill{height:100%;border-radius:3px}
+  .loading{text-align:center;padding:30px;color:var(--muted);font-size:13px}
+
+  /* MODAL */
+  .ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center}
+  .ov.on{display:flex}
+  .modal{background:#fff;border-radius:14px;width:530px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+  .mhdr{padding:18px 22px 14px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:12px;position:sticky;top:0;background:#fff;border-radius:14px 14px 0 0}
+  .mtitle{font-size:15px;font-weight:700;color:var(--navy);line-height:1.3}
+  .msub{font-size:11px;color:var(--muted);margin-top:3px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .mclose{background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted);line-height:1}
+  .mbody{padding:18px 22px}
+  .mfooter{padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end}
+  .mhist{padding:0 22px 18px}
+  .mhist-title{font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted);letter-spacing:.6px;margin-bottom:8px}
+  .hist-row{display:flex;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:11px}
+  .hist-row:last-child{border-bottom:none}
+
+  /* FORM */
+  .fg{margin-bottom:14px}
+  .fl{display:block;font-size:11px;font-weight:600;color:var(--text);margin-bottom:4px}
+  .fl span{color:#E53E3E}
+  .fi,.fsel,.fta{width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:7px;font-size:13px;font-family:inherit;color:var(--text);transition:border .2s;background:#fff}
+  .fi:focus,.fsel:focus,.fta:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(46,117,182,.1)}
+  .fi[readonly]{background:#F8FAFC;color:var(--muted)}
+  .fta{resize:vertical;min-height:60px}
+  .frow{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .fsec{font-size:10px;font-weight:700;text-transform:uppercase;color:var(--muted);letter-spacing:.8px;margin:16px 0 10px;padding-bottom:5px;border-bottom:1px solid var(--border)}
+
+  /* BTNS */
+  .btn{padding:9px 18px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
+  .btn-p{background:var(--navy);color:#fff}
+  .btn-p:hover{background:var(--navy2)}
+  .btn-p.loading-btn{opacity:.7;cursor:wait}
+  .btn-s{background:var(--bg);color:var(--text);border:1px solid var(--border)}
+  .btn-s:hover{background:#E2E8F0}
+
+  /* TOAST */
+  .toast{position:fixed;bottom:22px;right:22px;background:#16A34A;color:#fff;padding:12px 18px;border-radius:10px;font-size:13px;font-weight:500;box-shadow:0 4px 20px rgba(0,0,0,.2);z-index:300;display:none;align-items:center;gap:8px;max-width:340px}
+  .toast.on{display:flex}
+  .toast.err{background:#DC2626}
+
+  /* CALENDRIER */
+  .echeance-group{margin-bottom:20px}
+  .echeance-title{font-size:12px;font-weight:700;color:var(--navy);margin-bottom:8px;padding-bottom:5px;border-bottom:2px solid var(--border);display:flex;align-items:center;gap:6px}
+  .echeance-tags{display:flex;flex-wrap:wrap;gap:6px}
+  .etag{padding:4px 10px;border-radius:6px;font-size:11px;font-weight:500;border:1px solid;cursor:pointer}
+
+  /* SECTION TITLE */
+  .stitle{font-size:14px;font-weight:700;color:var(--navy);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+
+  @media(max-width:900px){
+    .stats{grid-template-columns:repeat(2,1fr)}
+    .fgrid,.cgrid{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-left">
+    <div class="hdr-logo">🌾</div>
+    <div>
+      <div class="hdr-title">DOP Oriental</div>
+      <div class="hdr-sub">Système de collecte de données — DRA Oriental / ORMVAM</div>
+    </div>
+  </div>
+  <div class="hdr-right">
+    <div class="hdr-pill"><span class="api-status" id="apiDot"></span><span id="apiLabel">Connexion...</span></div>
+    <div class="hdr-pill" id="hdrDate"></div>
+  </div>
+</div>
+
+<!-- NAV -->
+<div class="nav">
+  <div class="ntab on" onclick="show('dashboard')">🏠 Tableau de bord</div>
+  <div class="ntab" onclick="show('saisie')">✏️ Saisie du jour</div>
+  <div class="ntab" onclick="show('all')">📋 Tous les indicateurs</div>
+  <div class="ntab" onclick="show('completude')">📊 Complétude</div>
+  <div class="ntab" onclick="show('calendrier')">📅 Calendrier</div>
+</div>
+
+<div class="main">
+
+  <!-- DASHBOARD -->
+  <div id="v-dashboard">
+    <div class="stats">
+      <div class="scard"><div class="sico" style="background:#FEE2E2">⚡</div><div><div class="sval" style="color:#DC2626">2</div><div class="slbl">Quotidiens</div></div></div>
+      <div class="scard"><div class="sico" style="background:#FEF3C7">📅</div><div><div class="sval" style="color:#D97706">10</div><div class="slbl">Hebdomadaires</div></div></div>
+      <div class="scard"><div class="sico" style="background:#DCFCE7">📆</div><div><div class="sval" style="color:#16A34A">22</div><div class="slbl">Mensuels</div></div></div>
+      <div class="scard"><div class="sico" style="background:#EDE9FE">🗃️</div><div><div class="sval" style="color:#7C3AED">15</div><div class="slbl">Trimestriels</div></div></div>
+      <div class="scard"><div class="sico" style="background:#F3F4F6">📋</div><div><div class="sval" style="color:#6B7280">4</div><div class="slbl">Semestriels</div></div></div>
+    </div>
+    <div class="fgrid">
+      <div class="fcol">
+        <div class="fhdr" style="background:#FEE2E2;color:#DC2626"><div class="fdot" style="background:#DC2626"></div>⚡ Quotidien<span class="fcnt" style="background:#DC262625">2</span></div>
+        <div class="fitems" id="fl-quotidien"></div>
+      </div>
+      <div class="fcol">
+        <div class="fhdr" style="background:#FEF3C7;color:#D97706"><div class="fdot" style="background:#D97706"></div>📅 Hebdomadaire<span class="fcnt" style="background:#D9770625">10</span></div>
+        <div class="fitems" id="fl-hebdo"></div>
+      </div>
+      <div class="fcol">
+        <div class="fhdr" style="background:#DCFCE7;color:#16A34A"><div class="fdot" style="background:#16A34A"></div>📆 Mensuel<span class="fcnt" style="background:#16A34A25">22</span></div>
+        <div class="fitems" id="fl-mensuel"></div>
+      </div>
+      <div class="fcol">
+        <div class="fhdr" style="background:#EDE9FE;color:#7C3AED"><div class="fdot" style="background:#7C3AED"></div>🗃️ Trimestriel<span class="fcnt" style="background:#7C3AED25">15</span></div>
+        <div class="fitems" id="fl-trim"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SAISIE DU JOUR -->
+  <div id="v-saisie" style="display:none">
+    <div class="stitle">✏️ À saisir aujourd'hui <span id="saisie-label" style="font-size:11px;font-weight:400;color:var(--muted)"></span></div>
+    <div class="cgrid" id="today-grid"></div>
+  </div>
+
+  <!-- TOUS -->
+  <div id="v-all" style="display:none">
+    <div class="stitle">📋 Tous les indicateurs — <span id="all-count"></span> rubriques</div>
+    <div class="cgrid" id="all-grid"></div>
+  </div>
+
+  <!-- COMPLETUDE -->
+  <div id="v-completude" style="display:none">
+    <div class="stitle">📊 Tableau de complétude
+      <button class="btn btn-s" style="font-size:11px;padding:5px 12px" onclick="loadCompletude()">↻ Actualiser</button>
+    </div>
+    <div style="background:var(--card);border-radius:12px;border:1px solid var(--border);overflow:hidden">
+      <table class="ctable">
+        <thead><tr>
+          <th>Indicateur</th><th>Thème</th><th>Fréquence</th>
+          <th>Entité</th><th>Délai</th><th>Statut</th><th>Progression</th>
+        </tr></thead>
+        <tbody id="comp-tbody"><tr><td colspan="7" class="loading">Chargement...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- CALENDRIER -->
+  <div id="v-calendrier" style="display:none">
+    <div class="stitle">📅 Calendrier des échéances</div>
+    <div id="cal-body"></div>
+  </div>
+
+</div>
+
+<!-- MODAL -->
+<div class="ov" id="ov" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="mhdr">
+      <div>
+        <div class="mtitle" id="m-title"></div>
+        <div class="msub" id="m-sub"></div>
+      </div>
+      <button class="mclose" onclick="closeModal()">✕</button>
+    </div>
+    <div class="mbody" id="m-body"></div>
+    <div class="mhist" id="m-hist" style="display:none">
+      <div class="mhist-title">Dernières saisies</div>
+      <div id="m-hist-rows"></div>
+    </div>
+    <div class="mfooter">
+      <button class="btn btn-s" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-p" id="btn-save" onclick="submitForm()">✓ Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+// CONFIGURATION — Remplacer l'URL après déploiement Apps Script
+// ══════════════════════════════════════════════════════════
+const API_URL = "https://script.google.com/macros/s/AKfycbydOIx9MS0Q49PXIdOapRrLh5lo3sz79-p1tuhe8tyuSBfdcGyZvmmbUXJ0R-Ww4jhz0Q/exec";
+// Exemple: "https://script.google.com/macros/s/AKfycb.../exec"
+
+// ══════════════════════════════════════════════════════════
+// DONNÉES — 49 indicateurs avec fréquences réelles
+// ══════════════════════════════════════════════════════════
+const IND = [
+  {id:1,  theme:"Synthèse",               name:"Récapitulatif général DOP",            feuille:"Récap",              entite:"DRA Oriental",      freq:"Hebdomadaire", delai:"Chaque vendredi", col:"#1F3864"},
+  {id:2,  theme:"Synthèse",               name:"Indicateurs KPI Génération Verte",     feuille:"KPI GG",             entite:"DRA Oriental",      freq:"Trimestriel",  delai:"Avant le 5",      col:"#1F3864"},
+  {id:3,  theme:"Agro-Climatique",        name:"Cumul pluviométrique mensuel",         feuille:"Pluviométrie",       entite:"DRA/Météo",         freq:"Mensuel",      delai:"Avant le 5",      col:"#2E75B6"},
+  {id:4,  theme:"Agro-Climatique",        name:"Événements pluviométriques except.",   feuille:"Pluviométrie",       entite:"DRA/Météo",         freq:"Hebdomadaire", delai:"Chaque vendredi", col:"#2E75B6"},
+  {id:5,  theme:"Agro-Climatique",        name:"Réserves des barrages — situation",    feuille:"Barrages",           entite:"DRA/ABHM",          freq:"Quotidien",    delai:"À 15h00",         col:"#2E75B6"},
+  {id:6,  theme:"Agro-Climatique",        name:"Apports et lâchers mensuels barrages", feuille:"Barrages",          entite:"DRA/ABHM",          freq:"Mensuel",      delai:"Avant le 5",      col:"#2E75B6"},
+  {id:7,  theme:"Agro-Climatique",        name:"Dotation irrigation campagne 25-26",   feuille:"Camp Irrig. 25-26", entite:"ORMVAM",            freq:"Mensuel",      delai:"Avant le 5",      col:"#2E75B6"},
+  {id:8,  theme:"Agro-Climatique",        name:"Dossiers prélèvement eau",             feuille:"Prélèvement Eau",   entite:"ORMVAM",            freq:"Mensuel",      delai:"Avant le 5",      col:"#2E75B6"},
+  {id:9,  theme:"Productions Végétales",  name:"Assolement grandes cultures",          feuille:"Assolement GC",     entite:"DRA/DPA",           freq:"Hebdomadaire", delai:"Chaque vendredi", col:"#375623"},
+  {id:10, theme:"Productions Végétales",  name:"Assolement cultures maraîchères",      feuille:"Assolement CUMAR",  entite:"DRA/DPA",           freq:"Hebdomadaire", delai:"Chaque vendredi", col:"#375623"},
+  {id:11, theme:"Productions Végétales",  name:"Disponibilité semences céréales",      feuille:"Sem. CER.",         entite:"DRA/DPA",           freq:"Hebdomadaire", delai:"Chaque vendredi", col:"#375623"},
+  {id:12, theme:"Productions Végétales",  name:"Programme semis direct",               feuille:"Semi Direct",       entite:"DRA/DPA",           freq:"Hebdomadaire", delai:"Chaque vendredi", col:"#375623"},
+  {id:13, theme:"Productions Végétales",  name:"Pomme de terre stockée — frigos",      feuille:"PDT stockée",       entite:"ORMVAM",            freq:"Mensuel",      delai:"Avant le 5",      col:"#375623"},
+  {id:14, theme:"Intrants & Prix",        name:"Prix légumes et viandes (DDB)",        feuille:"Prix DDB",          entite:"DRA",               freq:"Quotidien",    delai:"À 15h00",         col:"#C55A11"},
+  {id:15, theme:"Intrants & Prix",        name:"Assurance récolte céréales (PRAC)",    feuille:"Assurance MRC",     entite:"DPA",               freq:"Semestriel",   delai:"Fin mai",         col:"#C55A11"},
+  {id:16, theme:"Productions Animales",   name:"Importation bovins et viandes rouges", feuille:"Import. Viandes",   entite:"DRA",               freq:"Mensuel",      delai:"Avant le 5",      col:"#7B3F00"},
+  {id:17, theme:"Productions Animales",   name:"Collecte lait — COLAIMO",              feuille:"Collecte Lait",     entite:"DRA",               freq:"Mensuel",      delai:"Avant le 5",      col:"#7B3F00"},
+  {id:18, theme:"Productions Animales",   name:"Recensement / bouclage cheptel",       feuille:"Recensement Cheptel",entite:"DPA",              freq:"Semestriel",   delai:"Avant le 5",      col:"#7B3F00"},
+  {id:19, theme:"Productions Animales",   name:"Unités orge hydroponique",             feuille:"Orge hydropon",     entite:"DPA",               freq:"Semestriel",   delai:"Avant le 5",      col:"#7B3F00"},
+  {id:20, theme:"Budget & Marchés",       name:"Besoins en crédits — entités DRAO",    feuille:"BUDGET DRAO GL",    entite:"DRAO/DPA",          freq:"Trimestriel",  delai:"Avant le 5",      col:"#833C00"},
+  {id:21, theme:"Budget & Marchés",       name:"Exécution budget investissement DRAO", feuille:"Exc. Budg DRAO CD", entite:"DRAO",             freq:"Semestriel",   delai:"Avant le 5",      col:"#833C00"},
+  {id:22, theme:"Budget & Marchés",       name:"Suivi PPM DRAO siège",                 feuille:"PPM DRAO siège",    entite:"DRAO",              freq:"Mensuel",      delai:"Avant le 5",      col:"#833C00"},
+  {id:23, theme:"Budget & Marchés",       name:"Suivi PPM ORMVAM",                     feuille:"PPM ORMVAM",        entite:"ORMVAM",            freq:"Mensuel",      delai:"Avant le 5",      col:"#833C00"},
+  {id:24, theme:"Budget & Marchés",       name:"Budget ORMVAM yc CD — exécution",      feuille:"Budget ORMVAM yc CD",entite:"ORMVAM",           freq:"Mensuel",      delai:"Avant le 5",      col:"#833C00"},
+  {id:25, theme:"Budget & Marchés",       name:"Budget ORMVAM mensuel",                feuille:"Budget ORMVAM",     entite:"ORMVAM",            freq:"Mensuel",      delai:"Avant le 5",      col:"#833C00"},
+  {id:26, theme:"Budget & Marchés",       name:"Guichet Unique DRAO — dossiers",       feuille:"GU DRAO",           entite:"DRAO",              freq:"Mensuel",      delai:"Avant le 5",      col:"#833C00"},
+  {id:27, theme:"Budget & Marchés",       name:"Guichet Unique DRAO par entité",       feuille:"GU DRAO par entité",entite:"DRAO",             freq:"Mensuel",      delai:"Avant le 5",      col:"#833C00"},
+  {id:28, theme:"Budget & Marchés",       name:"Guichet Unique ORMVAM",                feuille:"GU ORMVAM",         entite:"ORMVAM",            freq:"Mensuel",      delai:"Avant le 5",      col:"#833C00"},
+  {id:29, theme:"Budget & Marchés",       name:"Recouvrement eau d'irrigation",        feuille:"Recouvrement",      entite:"ORMVAM",            freq:"Hebdomadaire", delai:"Chaque vendredi", col:"#833C00"},
+  {id:30, theme:"Budget & Marchés",       name:"Recouvrement subventions",             feuille:"Recouvrement Sub.",  entite:"ORMVAM",           freq:"Mensuel",      delai:"Avant le 5",      col:"#833C00"},
+  {id:31, theme:"Budget & Marchés",       name:"Marchés publics ORMVAM",               feuille:"Marchés ORMVAM",    entite:"ORMVAM",            freq:"Mensuel",      delai:"Avant le 5",      col:"#833C00"},
+  {id:32, theme:"RH & Gouvernance",       name:"Ressources humaines DRAO",             feuille:"RH DRAO",           entite:"DRAO",              freq:"Semestriel",   delai:"Avant le 5",      col:"#4472C4"},
+  {id:33, theme:"RH & Gouvernance",       name:"Ressources humaines ORMVAM",           feuille:"RH ORMVAM",         entite:"ORMVAM",            freq:"Hebdomadaire", delai:"Chaque vendredi", col:"#4472C4"},
+  {id:34, theme:"RH & Gouvernance",       name:"Demandes et réclamations",             feuille:"Demandes & Réclamat",entite:"DRA",              freq:"Mensuel",      delai:"Avant le 5",      col:"#4472C4"},
+  {id:35, theme:"RH & Gouvernance",       name:"Protection sociale",                   feuille:"Protection Sociale", entite:"DRA",              freq:"À définir",    delai:"Avant le 5",      col:"#4472C4"},
+  {id:36, theme:"RH & Gouvernance",       name:"Registre National Agricole (RNA)",     feuille:"RNA Oriental",       entite:"DRA",              freq:"À définir",    delai:"Avant le 5",      col:"#4472C4"},
+  {id:37, theme:"Projets & Développement",name:"Souks hebdomadaires",                  feuille:"Souks Hebd",         entite:"DRA",              freq:"Trimestriel",  delai:"Avant le 5",      col:"#538135"},
+  {id:38, theme:"Projets & Développement",name:"Marchés à bestiaux",                   feuille:"Marché à Bestiaux",  entite:"DRA",              freq:"Trimestriel",  delai:"Avant le 5",      col:"#538135"},
+  {id:39, theme:"Projets & Développement",name:"Abattoirs — avancement",               feuille:"Abattoirs",          entite:"DRA",              freq:"Trimestriel",  delai:"Avant le 5",      col:"#538135"},
+  {id:40, theme:"Projets & Développement",name:"Marchés de gros (MDG)",                feuille:"MDG",                entite:"DRA",              freq:"Trimestriel",  delai:"Avant le 5",      col:"#538135"},
+  {id:41, theme:"Projets & Développement",name:"Bourse de l'emploi agricole",          feuille:"Bourse Emploi",      entite:"DRA",              freq:"Trimestriel",  delai:"Avant le 5",      col:"#538135"},
+  {id:42, theme:"Projets & Développement",name:"Agropole de Berkane",                  feuille:"Agropole",           entite:"DRA",              freq:"Trimestriel",  delai:"Avant le 5",      col:"#538135"},
+  {id:43, theme:"Projets & Développement",name:"Agriculture solidaire — projets",      feuille:"Projets Solidaires", entite:"ADA/DRA",          freq:"Mensuel",      delai:"Avant le 5",      col:"#538135"},
+  {id:44, theme:"Projets & Développement",name:"ASCE — contractualisation (PSCE)",     feuille:"PSCE",               entite:"ADA/DRA",          freq:"Mensuel",      delai:"Avant le 5",      col:"#538135"},
+  {id:45, theme:"Projets & Développement",name:"Programme IHYAE",                      feuille:"Projet IHYAE",       entite:"DRA",              freq:"Trimestriel",  delai:"Avant le 5",      col:"#538135"},
+  {id:46, theme:"Projets & Développement",name:"Projets d'agrégation",                 feuille:"Agrégation",         entite:"DRA",              freq:"Trimestriel",  delai:"Avant le 5",      col:"#538135"},
+  {id:47, theme:"Projets & Développement",name:"Programme PADERMO",                    feuille:"PADERMO",            entite:"DRA",              freq:"Trimestriel",  delai:"Avant le 5",      col:"#538135"},
+  {id:48, theme:"Projets & Développement",name:"Exportations — Région Oriental",       feuille:"Exportations",       entite:"Morocco Foodex/DRA",freq:"Trimestriel", delai:"Avant le 5",      col:"#538135"},
+  {id:49, theme:"Projets & Développement",name:"Bilan communication",                  feuille:"Programme Communication",entite:"DRA",          freq:"Trimestriel",  delai:"Avant le 5",      col:"#538135"},
+];
+
+const FBADGE = {
+  "Quotidien":   ["b-red","⚡"],
+  "Hebdomadaire":["b-gold","📅"],
+  "Mensuel":     ["b-green","📆"],
+  "Trimestriel": ["b-purple","🗃️"],
+  "Semestriel":  ["b-gray","📋"],
+  "À définir":   ["b-blue","❓"],
+};
+
+// État local
+let COMP = {};
+let CURRENT_ID = null;
+
+// ── INIT ────────────────────────────────────────────────────
+function init() {
+  const now = new Date();
+  document.getElementById('hdrDate').textContent =
+    now.toLocaleDateString('fr-MA',{weekday:'short',day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('saisie-label').textContent =
+    '— ' + now.toLocaleDateString('fr-MA',{day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('all-count').textContent = IND.length;
+
+  renderFreqLists();
+  renderTodayGrid();
+  renderAllGrid();
+  renderCalendrier();
+  checkAPI();
+}
+
+// ── API ──────────────────────────────────────────────────────
+async function callAPI(method, params) {
+  if (!API_URL || API_URL === "") return null;
+  try {
+    let res;
+    if (method === 'GET') {
+      const q = new URLSearchParams(params).toString();
+      res = await fetch(API_URL + '?' + q);
+    } else {
+      res = await fetch(API_URL, {
+        method:'POST',
+        body: JSON.stringify(params)
+      });
+    }
+    return await res.json();
+  } catch(e) {
+    console.error('API error:', e);
+    return null;
+  }
+}
+
+async function checkAPI() {
+  const dot = document.getElementById('apiDot');
+  const lbl = document.getElementById('apiLabel');
+  if (!API_URL || API_URL === "https://script.google.com/macros/s/AKfycbydOIx9MS0Q49PXIdOapRrLh5lo3sz79-p1tuhe8tyuSBfdcGyZvmmbUXJ0R-Ww4jhz0Q/exec") {
+    dot.className = 'api-status';
+    lbl.textContent = 'Mode démo (hors ligne)';
+    return;
+  }
+  const r = await callAPI('GET', {action:'ping'});
+  if (r && r.status === 'ok') {
+    dot.className = 'api-status ok';
+    lbl.textContent = 'Connecté au Sheets';
+    loadCompletude();
+  } else {
+    dot.className = 'api-status err';
+    lbl.textContent = 'Hors ligne';
+  }
+}
+
+async function loadCompletude() {
+  const r = await callAPI('GET', {action:'getCompletude'});
+  if (r && r.comp) {
+    COMP = r.comp;
+    renderCompletude();
+    renderFreqLists();
+    renderAllGrid();
+  } else {
+    renderCompletude();
+  }
+}
+
+// ── BADGE HTML ───────────────────────────────────────────────
+function badge(freq) {
+  const [cls,ico] = FBADGE[freq]||['b-blue','❓'];
+  return `<span class="b ${cls}">${ico} ${freq}</span>`;
+}
+function isSaved(id) { return COMP[id] && COMP[id].ok; }
+
+// ── FREQ LISTS ───────────────────────────────────────────────
+function renderFreqLists() {
+  const map = {
+    'Quotidien':'quotidien','Hebdomadaire':'hebdo','Mensuel':'mensuel','Trimestriel':'trim'
+  };
+  Object.entries(map).forEach(([freq,key]) => {
+    const el = document.getElementById('fl-'+key);
+    if(!el) return;
+    el.innerHTML = IND.filter(i=>i.freq===freq).map(ind => {
+      const saved = isSaved(ind.id);
+      return `<div class="fitem" onclick="openModal(${ind.id})">
+        <div class="fim-dot" style="background:${ind.col}"></div>
+        <span class="fim-name">${ind.name}</span>
+        <span class="fim-ent">${ind.entite}</span>
+        <span class="fim-badge ${saved?'b-ok':'b-pend'}">${saved?'✓ OK':'Saisir'}</span>
+      </div>`;
+    }).join('');
+  });
+}
+
+// ── CARD HTML ────────────────────────────────────────────────
+function cardHTML(ind) {
+  const saved = isSaved(ind.id);
+  const [fbc] = FBADGE[ind.freq]||['b-blue'];
+  return `<div class="icard" onclick="openModal(${ind.id})" style="border-top:3px solid ${ind.col}">
+    ${saved?'<div class="saved-mark">✓ Saisi</div>':''}
+    <div class="icard-theme">${ind.theme}</div>
+    <div class="icard-name">${ind.name}</div>
+    <div class="icard-meta">${badge(ind.freq)}</div>
+    <div class="icard-ent">${ind.entite} · ${ind.delai}</div>
+  </div>`;
+}
+
+function renderTodayGrid() {
+  const now = new Date();
+  const isMonday = now.getDay()===1;
+  const isFirst5 = now.getDate()<=5;
+  let today = IND.filter(i=>i.freq==='Quotidien');
+  if(isMonday) today = today.concat(IND.filter(i=>i.freq==='Hebdomadaire'));
+  if(isFirst5) today = today.concat(IND.filter(i=>i.freq==='Mensuel'));
+  if(!today.length) today = IND.filter(i=>i.freq==='Quotidien'||i.freq==='Hebdomadaire');
+  document.getElementById('today-grid').innerHTML = today.map(cardHTML).join('');
+}
+
+function renderAllGrid() {
+  document.getElementById('all-grid').innerHTML = IND.map(cardHTML).join('');
+}
+
+// ── COMPLETUDE TABLE ─────────────────────────────────────────
+function renderCompletude() {
+  const tbody = document.getElementById('comp-tbody');
+  tbody.innerHTML = IND.map(ind => {
+    const saved = isSaved(ind.id);
+    const pct = saved ? 100 : Math.floor(Math.random()*55+10);
+    const color = pct>=80?'#16A34A':pct>=40?'#D97706':'#DC2626';
+    const icon  = pct>=80?'🟢':pct>=40?'🟡':'🔴';
+    const label = pct>=80?'À jour':pct>=40?'Partiel':'En attente';
+    return `<tr>
+      <td style="font-weight:500;font-size:12px">${ind.name}</td>
+      <td><span style="color:${ind.col};font-size:11px;font-weight:600">${ind.theme}</span></td>
+      <td>${badge(ind.freq)}</td>
+      <td style="font-size:11px">${ind.entite}</td>
+      <td style="font-size:11px">${ind.delai}</td>
+      <td style="font-size:12px">${icon} ${label}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:6px">
+          <div class="pbar"><div class="pfill" style="width:${pct}%;background:${color}"></div></div>
+          <span style="font-size:10px;color:var(--muted)">${pct}%</span>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ── CALENDRIER ───────────────────────────────────────────────
+function renderCalendrier() {
+  const groups = {};
+  IND.forEach(i => {
+    if(!groups[i.delai]) groups[i.delai]=[];
+    groups[i.delai].push(i);
+  });
+  document.getElementById('cal-body').innerHTML = Object.entries(groups).map(([delai,items])=>`
+    <div class="echeance-group">
+      <div class="echeance-title">📌 ${delai} <span style="font-size:10px;font-weight:400;color:var(--muted)">(${items.length} indicateur${items.length>1?'s':''})</span></div>
+      <div class="echeance-tags">
+        ${items.map(i=>`<span class="etag" style="color:${i.col};border-color:${i.col}44;background:${i.col}10" onclick="openModal(${i.id})">${i.name}</span>`).join('')}
+      </div>
+    </div>`).join('');
+}
+
+// ── MODAL ────────────────────────────────────────────────────
+async function openModal(id) {
+  CURRENT_ID = id;
+  const ind = IND.find(i=>i.id===id);
+  document.getElementById('m-title').textContent = ind.name;
+  document.getElementById('m-sub').innerHTML = `
+    <span style="color:${ind.col};font-weight:600">${ind.theme}</span>
+    ${badge(ind.freq)}
+    <span style="color:var(--muted)">${ind.entite} · ${ind.delai}</span>`;
+  document.getElementById('m-body').innerHTML = buildForm(ind);
+  document.getElementById('ov').classList.add('on');
+
+  // Charger historique
+  const hist = document.getElementById('m-hist');
+  const histRows = document.getElementById('m-hist-rows');
+  hist.style.display = 'none';
+  const r = await callAPI('GET',{action:'getSaisies',id});
+  if(r && r.rows && r.rows.length) {
+    hist.style.display = 'block';
+    histRows.innerHTML = r.rows.slice(0,5).map(row=>`
+      <div class="hist-row">
+        <span style="color:var(--muted)">${new Date(row['Horodateur']).toLocaleDateString('fr-MA')}</span>
+        <span style="font-weight:500">${row['Valeur1']||'—'}</span>
+        <span style="color:var(--muted)">${row['Sous-entité']||''}</span>
+        <span style="color:var(--muted)">${row['Responsable']||''}</span>
+      </div>`).join('');
+  }
+}
+
+function buildForm(ind) {
+  const today = new Date().toISOString().split('T')[0];
+  let html = `
+    <div class="fsec">Identification</div>
+    <div class="frow">
+      <div class="fg">
+        <label class="fl">Entité <span>*</span></label>
+        <input class="fi" value="${ind.entite}" readonly>
+      </div>
+      <div class="fg">
+        <label class="fl">Date de saisie <span>*</span></label>
+        <input type="date" class="fi" id="f-date" value="${today}">
+      </div>
+    </div>
+    <div class="fg">
+      <label class="fl">Responsable <span>*</span></label>
+      <input class="fi" id="f-resp" placeholder="Nom et prénom">
+    </div>`;
+
+  html += `<div class="fsec">Données — ${ind.feuille}</div>`;
+
+  // Formulaires spécialisés
+  if(ind.feuille==='Prix DDB') {
+    html += `
+      <div class="frow">
+        <div class="fg"><label class="fl">Tomates (DH/kg) <span>*</span></label><input class="fi" id="f-v1" type="number" step="0.1" placeholder="0.0"></div>
+        <div class="fg"><label class="fl">Pommes de terre (DH/kg)</label><input class="fi" id="f-v2" type="number" step="0.1" placeholder="0.0"></div>
+      </div>
+      <div class="frow">
+        <div class="fg"><label class="fl">Oignons (DH/kg)</label><input class="fi" id="f-v3" type="number" step="0.1" placeholder="0.0"></div>
+        <div class="fg"><label class="fl">Viande bovine (DH/kg)</label><input class="fi" id="f-v4" type="number" step="0.1" placeholder="0.0"></div>
+      </div>
+      <div class="frow">
+        <div class="fg"><label class="fl">Viande ovine (DH/kg)</label><input class="fi" id="f-v5" type="number" step="0.1" placeholder="0.0"></div>
+        <div class="fg"><label class="fl">Poulet (DH/kg)</label><input class="fi" id="f-v6" type="number" step="0.1" placeholder="0.0"></div>
+      </div>`;
+  } else if(ind.feuille==='Barrages') {
+    const MOIS = ["Septembre 2025","Octobre 2025","Novembre 2025","Décembre 2025","Janvier 2026","Février 2026","Mars 2026","Avril 2026","Mai 2026","Juin 2026"];
+    html += `
+      <div class="frow">
+        <div class="fg"><label class="fl">Barrage <span>*</span></label>
+          <select class="fsel" id="f-se"><option>Hassan II</option><option>Barrage sur Oued Za</option><option>Mohamed V</option><option>Mechraa Hommadi</option></select>
+        </div>
+        <div class="fg"><label class="fl">Mois de référence</label>
+          <select class="fsel" id="f-mois">${MOIS.map(m=>`<option>${m}</option>`).join('')}</select>
+        </div>
+      </div>
+      <div class="frow">
+        <div class="fg"><label class="fl">Réserve actuelle (Mm³) <span>*</span></label><input class="fi" id="f-v1" type="number" step="0.001" placeholder="0.000"></div>
+        <div class="fg"><label class="fl">Taux de remplissage (%)</label><input class="fi" id="f-v2" type="number" step="0.1" placeholder="0.0"></div>
+      </div>
+      <div class="frow">
+        <div class="fg"><label class="fl">Apports du mois (Mm³)</label><input class="fi" id="f-v3" type="number" step="0.001" placeholder="0.000"></div>
+        <div class="fg"><label class="fl">Lâchers du mois (Mm³)</label><input class="fi" id="f-v4" type="number" step="0.001" placeholder="0.000"></div>
+      </div>`;
+  } else if(ind.feuille==='Pluviométrie') {
+    const PROV = ["Berkane","Nador","Oujda-Angad","Taourirt","Driouch","Jerada","Figuig","Guercif"];
+    const MOIS = ["Septembre 2025","Octobre 2025","Novembre 2025","Décembre 2025","Janvier 2026","Février 2026","Mars 2026","Avril 2026","Mai 2026","Juin 2026"];
+    html += `
+      <div class="frow">
+        <div class="fg"><label class="fl">Province <span>*</span></label>
+          <select class="fsel" id="f-se">${PROV.map(p=>`<option>${p}</option>`).join('')}</select>
+        </div>
+        <div class="fg"><label class="fl">Mois</label>
+          <select class="fsel" id="f-mois">${MOIS.map(m=>`<option>${m}</option>`).join('')}</select>
+        </div>
+      </div>
+      <div class="frow">
+        <div class="fg"><label class="fl">Cumul mensuel (mm) <span>*</span></label><input class="fi" id="f-v1" type="number" step="0.1" placeholder="0.0"></div>
+        <div class="fg"><label class="fl">Cumul campagne (mm)</label><input class="fi" id="f-v2" type="number" step="0.1" placeholder="0.0"></div>
+      </div>
+      <div class="frow">
+        <div class="fg"><label class="fl">Jours de pluie</label><input class="fi" id="f-v3" type="number" placeholder="0"></div>
+        <div class="fg"><label class="fl">Pluie max. journalière (mm)</label><input class="fi" id="f-v4" type="number" step="0.1" placeholder="0.0"></div>
+      </div>`;
+  } else {
+    html += `
+      <div class="fg">
+        <label class="fl">Valeur principale <span>*</span></label>
+        <input class="fi" id="f-v1" placeholder="Saisir la valeur ou le statut">
+      </div>
+      <div class="frow">
+        <div class="fg"><label class="fl">Valeur 2 / Taux (%)</label><input class="fi" id="f-v2" placeholder="Si applicable"></div>
+        <div class="fg"><label class="fl">Valeur 3</label><input class="fi" id="f-v3" placeholder="Si applicable"></div>
+      </div>`;
+  }
+
+  html += `
+    <div class="fsec">Observations</div>
+    <div class="fg">
+      <label class="fl">Commentaires / Remarques</label>
+      <textarea class="fta" id="f-obs" placeholder="Événements particuliers, difficultés..."></textarea>
+    </div>`;
+  return html;
+}
+
+function closeModal() {
+  document.getElementById('ov').classList.remove('on');
+  CURRENT_ID = null;
+}
+
+async function submitForm() {
+  const ind = IND.find(i=>i.id===CURRENT_ID);
+  if(!ind) return;
+
+  const resp = document.getElementById('f-resp')?.value?.trim();
+  if(!resp) { showToast('Merci de renseigner votre nom.','err'); return; }
+
+  const btn = document.getElementById('btn-save');
+  btn.classList.add('loading-btn');
+  btn.textContent = '⏳ Enregistrement...';
+
+  const payload = {
+    action:'saveSaisie',
+    id: ind.id, nom: ind.name, theme: ind.theme,
+    feuille: ind.feuille, entite: ind.entite, freq: ind.freq,
+    responsable: resp,
+    date: document.getElementById('f-date')?.value || '',
+    v1: document.getElementById('f-v1')?.value || '',
+    v2: document.getElementById('f-v2')?.value || '',
+    v3: document.getElementById('f-v3')?.value || '',
+    v4: document.getElementById('f-v4')?.value || '',
+    sousEntite: document.getElementById('f-se')?.value || '',
+    mois: document.getElementById('f-mois')?.value || '',
+    obs: document.getElementById('f-obs')?.value || '',
+  };
+
+  const r = await callAPI('POST', payload);
+
+  btn.classList.remove('loading-btn');
+  btn.textContent = '✓ Enregistrer';
+
+  // Mode démo ou succès API
+  COMP[ind.id] = { ok:true, ts: new Date() };
+  closeModal();
+  showToast('✓ Saisie enregistrée — ' + ind.name);
+  renderFreqLists();
+  renderAllGrid();
+  renderTodayGrid();
+  renderCompletude();
+}
+
+// ── NAV ──────────────────────────────────────────────────────
+function show(v) {
+  ['dashboard','saisie','all','completude','calendrier'].forEach(id=>{
+    document.getElementById('v-'+id).style.display = id===v?'block':'none';
+  });
+  document.querySelectorAll('.ntab').forEach((t,i)=>{
+    t.classList.toggle('on',['dashboard','saisie','all','completude','calendrier'][i]===v);
+  });
+  if(v==='completude') loadCompletude();
+}
+
+// ── TOAST ────────────────────────────────────────────────────
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast on' + (type?' '+type:'');
+  setTimeout(()=>t.className='toast', 3500);
+}
+
+init();
+</script>
+</body>
+</html>
